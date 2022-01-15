@@ -29,11 +29,12 @@ int create_CPLEX_master_enviroment(CPXENVptr *env, CONFIGURATION param, GLOBAL_I
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_MIPSEARCH,  CPX_MIPSEARCH_TRADITIONAL));// Turn on traditional search for use with control callbacks 
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_MIPCBREDLP, CPX_OFF));					// Let MIP callbacks work on the original model 
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_HEURFREQ,	-1));
+	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_PRELINEAR, CPX_OFF));
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_MIPINTERVAL, 1));
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_PRESLVND, -1));
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_PREIND, 0));
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_REPEATPRESOLVE, 0));
-	status = MAX(status, CPXsetdblparam(*env, CPX_PARAM_CUTUP, (global.results->UpperBound)+0.01));
+	//status = MAX(status, CPXsetdblparam(*env, CPX_PARAM_CUTUP, (global.results->UpperBound)+0.01));
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_MIPEMPHASIS, 2));		//	0	CPX_MIPEMPHASIS_BALANCED		Balance optimality and feasibility; default
 																				//	1	CPX_MIPEMPHASIS_FEASIBILITY		Emphasize feasibility over optimality
 																				//	2	CPX_MIPEMPHASIS_OPTIMALITY		Emphasize optimality over feasibility
@@ -45,7 +46,6 @@ int create_CPLEX_master_enviroment(CPXENVptr *env, CONFIGURATION param, GLOBAL_I
 	
 
 	status = MAX(status, CPXsetintparam(*env, CPX_PARAM_VARSEL,  3)); // 0: default, 1: max_infeas, 2: pseudo_cost, 3: strong_branching
-    
 
 
 	return status;
@@ -518,9 +518,21 @@ int create_CPLEX_master_milp(CPXENVptr env, CPXLPptr lp, GLOBAL_INFO global) {
 	int	 E = global.data->E;
 	int	 K = global.data->K;
 	char *ctype	= create_char_vector(E+K);
+	int *beg = create_int_vector(1);
+	int *varindices = create_int_vector(E+K);
+	int *effortlevel = create_int_vector(1);
+
+	beg[0] = 0;
+	effortlevel[0] = 4;
 
 	// Y_e
-	for (e=0; e<E; e++) { ctype[e] = 'B'; }		// type of variable (Binary)
+	for (e=0; e<E; e++) { 
+		ctype[e] = 'B'; // type of variable (Binary)
+	}	
+
+	for (e = 0; e < E + K; e++) {
+		varindices[e] = e;
+	}
             
 	// Z_k
 	for (k=0; k<K; k++) { ctype[E+k] = 'C'; }	// type of variable (Continous)
@@ -532,6 +544,9 @@ int create_CPLEX_master_milp(CPXENVptr env, CPXLPptr lp, GLOBAL_INFO global) {
 	// Unless we are using CPLEX as a black box for the Master Problem...
 	if (global.param->ALGORITHM == 1) {		// Branch & Cut Benders
 		
+		printf("Current upper bound %.lf\n", global.results->UpperBound);
+		// Provide the initial solution found so far
+		//status = CPXaddmipstarts(env, lp, 1, E, beg, varindices, global.results->best_solution, effortlevel, NULL);
 		// Provide a Lazy Constraint Callback Function
 		status = CPXsetlazyconstraintcallbackfunc(env, lazy_cut_callback, &global);
 		assert(status == 0);
@@ -581,6 +596,14 @@ int solve_to_integrality(CPXENVptr env, CPXLPptr lp, GLOBAL_INFO global) {
 		// Solve Master Problem
 	    CPXsetintparam(env,CPX_PARAM_SCRIND,CPX_ON);
 		CPXsetintparam(env,CPX_PARAM_MIPDISPLAY,3); //different levels of output display
+		// New stuff added
+		/*CPXsetdblparam(env, CPXPARAM_MIP_Tolerances_AbsMIPGap, global.param->MIN_ABS_GAP);
+		CPXsetdblparam(env, CPXPARAM_MIP_Tolerances_Integrality, 0.0005);
+		CPXsetintparam(env, CPXPARAM_MIP_Strategy_LBHeur, CPX_ON);
+		CPXsetintparam(env, CPXPARAM_MIP_Strategy_HeuristicFreq, 5);
+		CPXsetintparam(env, CPXPARAM_MIP_Strategy_FPHeur, 1);*/
+
+		
 		start = clock();
 		status = CPXmipopt(env, lp);
 		assert(status == 0);
@@ -674,7 +697,7 @@ int CPXPUBLIC lazy_cut_callback(CPXCENVptr env, void *cbdata, int wherefrom, voi
 	double	*lb;
 	int		previous_cuts, cuts_found = 0;
 	int		status = 0;
-	int		NODES_LEFT, SEQNUM, depth;	
+	int		NODES_LEFT, SEQNUM, depth;
 
 	/// GET INFORMATION: ///////////////////////////////////////////////////
 	// Sometimes the cut_callback is called in a situation where: CPX_CALLBACK_INFO_NODES_LEFT == 0.
@@ -756,7 +779,7 @@ int CPXPUBLIC lazy_cut_callback(CPXCENVptr env, void *cbdata, int wherefrom, voi
 
 
 		// LOCAL CUTS /////////////////////////////////////////////////////////
-		if (global.param->ADD_LOCAL_CUTS == YES){ // && global.param->USE_BRANCHING_CALLBACK == NO && elapsed(global.var->init_time) < global.param->MAX_CPU_TIME) {
+		if (global.param->ADD_LOCAL_CUTS == YES ){ // && global.param->USE_BRANCHING_CALLBACK == NO && elapsed(global.var->init_time) < global.param->MAX_CPU_TIME) {
 			
 			// Allocate Memory:
 			lb = create_double_vector(E+K);
@@ -819,7 +842,7 @@ int CPXPUBLIC user_cut_callback(CPXCENVptr env, void *cbdata, int wherefrom, voi
 	int		previous_cuts;
 	int		status = 0;
 	
-	int		NODES_LEFT, SEQNUM, depth;	
+	int		NODES_LEFT, SEQNUM, depth;
 	
 	/// GET INFORMATION: ///////////////////////////////////////////////////
 	// Sometimes the cut_callback is called in a situation where: CPX_CALLBACK_INFO_NODES_LEFT == 0.
@@ -1160,9 +1183,9 @@ int CPXPUBLIC set_branch_callback(CPXCENVptr env, void *cbdata, int wherefrom, v
     
 	// Get linked list version of the graph induced by the variables fixed to 1:
 	for (i=0; i<N; i++) { degree[i] = 0; }
-	for (i=0; i<N; i++) {
-	    for (j=0; j<N; j++) {
-            if (lb[index_e[i][j]] >= 0.5) {
+	for (i=0; i<N-1; i++) {
+	    for (j=i+1; j<N; j++) {
+            if (lb[index_e[i][j]] >= 0.5 && lb[index_e[j][i]] >= 0.5) {
 				neighbors[i][degree[i]++] = j;
 				neighbors[j][degree[j]++] = i;
             }
@@ -1382,6 +1405,12 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
     int     *comp = create_int_vector(N);
 	int		**neighbors = create_int_matrix(N,N);
 	int		*degree = create_int_vector(N);
+	
+	int		**local_edges = create_int_matrix(N, N);
+	int		*tree_analysis_stack = create_int_vector(N);
+	int		*is_component_tree = create_int_vector(N);
+	int		count_edges;
+
     
     /////////////////
     // PRE-PROCESS //
@@ -1389,16 +1418,25 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
 
 	// Get linked list version of the graph:
 	n_edges = 0;
-	for (i=0; i<N; i++) { degree[i] = 0; }
-	for (i=0; i<N; i++) {
-	    for (j=0; j<N; j++) {
-            if (lb[index_e[i][j]] + EPSILON >= 1.0) {
+	for (i=0; i<N; i++) { 
+		for (j = 0; j < N; j++) {
+			local_edges[i][j] = 0;
+		}
+		degree[i] = 0; 
+	}
+
+	for (i=0; i<N-1; i++) {
+	    for (j=i+1; j<N; j++) {
+			if( (lb[index_e[i][j]] + EPSILON >= 1.0) && (lb[index_e[j][i]] + EPSILON >= 1.0)) {
+				printf("Lower Value of arc(%d,%d)=%.4lf\n", i, j, lb[index_e[i][j]]);
 				neighbors[i][degree[i]++] = j;
 				neighbors[j][degree[j]++] = i;
+				local_edges[i][j] = 1;
 				n_edges++;
             }
         } 
     }
+	printf("Number of edges %d\n", n_edges);
 
     // Find Connected Components:
     for (i=0; i<N; i++) { cc[i] = NONE; }
@@ -1421,7 +1459,35 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
 			n_cc++;
 		}
     }
-    
+	printf("Number of connected components %d\n", n_cc);
+	for (i = 0; i < N; i++) { printf("node %d is in component %d\n", i, cc[i]); }
+
+	//Trying to detect whether the components are all trees
+	for (i = 0; i < n_cc; i++) {
+		size = 0;
+		// Collecting the nodes in connected component i
+		for (j = 0; j < N; j++) {
+			if (cc[j] == i) {
+				tree_analysis_stack[size++] = j;
+			}
+		}
+		// Count how many edges are in the connected component i
+		count_edges = 0;
+		for (d = 0; d < size; d++) {
+			for (e = 0; e < size; e++) {
+				count_edges += local_edges[tree_analysis_stack[d]][tree_analysis_stack[e]];
+			}
+		}
+		// Mark as tree
+		if (count_edges == size - 1) { is_component_tree[i] = 1; }
+		else { is_component_tree[i] = 0; printf("component %d is not a tree\n"); }
+	}
+	
+
+	if (n_cc == 1 && n_edges==N-1) {
+		goto Terminate;
+	}
+
 	// Find Distances:
     for (i=0; i<N; i++) { for (j=0; j<N; j++) { dist[i][j] = -1.0; } }
 	for (i=0; i<N; i++) {
@@ -1433,7 +1499,7 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
 			for (d=0; d<degree[j]; d++) {
 				k = neighbors[j][d];
                 if (dist[i][k] < 0.0) {
-					dist[i][k] = dist[j][k] + C[j][k];
+					dist[i][k] = dist[i][j] + C[j][k];
                     stack[size++] = k;
 				}
             }
@@ -1452,42 +1518,52 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
     sense       = 'E';      // This is always the same
     cutval[0]   = 1.0;      // This is always the same    
     for (c=0; c<n_cc; c++) {
-        size = 0;
-        for (i=0; i<N; i++) { if (cc[i] == c) { stack[size++] = i; } }    
-		
-		for (ii=0; ii<size-1; ii++) {
-            i = stack[ii];
-            for (jj=ii+1; jj<size; jj++) {
-                j = stack[jj];
-                k = index_k[i][j];
-                e = index_e[i][j];
-                
-		        // Add row: Z^k = dist[i,j]
-                if (k != NONE  &&  ub[E+k]-lb[E+k] > EPSILON) {
-                    cutind[0] = E+k;
-                    rhs       = dist[i][j];
-                    status    = CPXcutcallbackaddlocal(env, cbdata, wherefrom, numnz, rhs, sense, cutind, cutval);
-                    assert(status == 0);
-                    added_cuts++;
-					dist_cuts++;
-                }                
-				
-                // Add row: Y_e = 0
-                if (lb[e] + EPSILON < 1.0 && ub[e] - EPSILON > 0.0) {
-                    cutind[0] = e;
-                    rhs       = 0.0;
-                    status    = CPXcutcallbackaddlocal(env, cbdata, wherefrom, numnz, rhs, sense, cutind, cutval);
-                    assert(status == 0);
-                    added_cuts++;
-					tree_cuts++;
-                }
-            }
-        }
+		if (is_component_tree[c] == 1) {
+			printf("Writing cut for component %d\n", c);
+			size = 0;
+			for (i = 0; i < N; i++) {
+				if (cc[i] == c) {
+					stack[size++] = i;
+				}
+			}
+
+			for (ii = 0; ii < size - 1; ii++) {
+				i = stack[ii];
+				for (jj = ii + 1; jj < size; jj++) {
+					j = stack[jj];
+					k = index_k[i][j];
+					e = index_e[i][j];
+
+					//printf("distance commodity (%d,%d)=%.4lf\n", i, j, dist[i][j]);
+					// Add row: Z^k = dist[i,j]
+					if (k != NONE && ub[E + k] - lb[E + k] > EPSILON) {
+						cutind[0] = E + k;
+						rhs = dist[i][j];
+						status = CPXcutcallbackaddlocal(env, cbdata, wherefrom, numnz, rhs, sense, cutind, cutval);
+						assert(status == 0);
+						added_cuts++;
+						dist_cuts++;
+
+					}
+
+					// Add row: Y_e = 0
+					if (lb[e] + EPSILON < 1.0 && ub[e] - EPSILON > 0.0) {
+						cutind[0] = e;
+						rhs = 0.0;
+						status = CPXcutcallbackaddlocal(env, cbdata, wherefrom, numnz, rhs, sense, cutind, cutval);
+						assert(status == 0);
+						added_cuts++;
+						tree_cuts++;
+					}
+				}
+			}
+		}
     }    
 
 	if (global.param->SCREEN_OUTPUT >= 2) { printf("\t\t\t %d local_dist and %d local_tree cuts found\n", dist_cuts, tree_cuts); }
 
-    // Remember
+    Terminate:
+	// Remember
 	global.results->n_local_cuts += added_cuts;
 	
 	// Clean:

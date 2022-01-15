@@ -52,9 +52,9 @@ int read_CONFIGURATION(char *filename, CONFIGURATION *param) {
 
 	// Heuristic Phase:
 	param->DO_MST_HEUR				= NO;
-	param->DO_AMT_HEUR				= YES;
+	param->DO_AMT_HEUR				= NO;
 	param->DO_GHT_HEUR				= NO;
-	param->DO_STAR_HEUR				= NO;	
+	param->DO_STAR_HEUR				= NO;
 	param->DO_MCMCT_HEUR			= NO;
 	param->DO_BUDaC_HEUR			= NO;
 	param->ADD_LOCAL_SEARCH_HEUR	= NO;
@@ -70,7 +70,7 @@ int read_CONFIGURATION(char *filename, CONFIGURATION *param) {
 	param->USE_BRANCHING_CALLBACK   = YES;	// YES: Use the CPLEX Branching Callback
 	param->ADD_NON_VIOLATED_CUTS	= NO;	// NO: Add only violated cuts. YES: Add them all.
 	
-	// Select initial formulation
+	// Select initial formulation CZ
 	param->GLOBAL_LOWER_BOUND		= YES;	// Add a single "global lower bound" cut
 	param->COMMODITY_LOWER_BOUND	= YES;	// Add a "commodity lower bound" for each commodity
 	param->TREE_3_LOWER_BOUND		= NO;	// Add "3-tree lower bounds"
@@ -80,6 +80,17 @@ int read_CONFIGURATION(char *filename, CONFIGURATION *param) {
 	param->GHT_OPT_CUTS				= YES;	// Add the optimality cuts associated to the Gomory-Hu Tree
 	param->MCMCT_OPT_CUTS			= NO;	// Add the optimality cuts associated to the MinCutMinCost Tree
 	param->STARS_OPT_CUTS			= NO;	// Add the optimality cuts associated to each Star-tree
+
+	//MGO configuration or initial formulation
+	//param->GLOBAL_LOWER_BOUND = NO;	// MGO disabled to see cuts. Add a single "global lower bound" cut
+	//param->COMMODITY_LOWER_BOUND = NO;	// MGO disabled to see cuts. Add a "commodity lower bound" for each commodity
+	//param->TREE_3_LOWER_BOUND = NO;	// Add "3-tree lower bounds"
+	//param->TREE_4_LOWER_BOUND = NO;	// Add "4-tree lower bounds"
+	//param->MST_OPT_CUTS = NO;	// MGO disabled to see cuts. Add the optimality cuts associated to the MST
+	//param->AMT_OPT_CUTS = NO;	// MGO disabled to see cuts. Add the optimality cuts associated to the Ahuja-Murty Tree
+	//param->GHT_OPT_CUTS = NO;	// MGO disabled to see cuts. Add the optimality cuts associated to the Gomory-Hu Tree
+	//param->MCMCT_OPT_CUTS = NO;	// Add the optimality cuts associated to the MinCutMinCost Tree
+	//param->STARS_OPT_CUTS = NO;	// Add the optimality cuts associated to each Star-tree
 
 	// Feasibility Cuts:
 	param->FEAS_CUT_TYPE			= 1;	// 0: Cutset Inequalities, 1: Packing Inequalities
