@@ -1,2 +1,6 @@
 1
 ./Instances/Raidl_50c.txt
+./Instances/Raidl_20ORSTP.txt
+
+
+

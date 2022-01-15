@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1340
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OCT_Benders", "OCT_Benders.vcxproj", "{66322F68-8D8D-476E-8428-1A1B2B15B5A1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Debug|x64.ActiveCfg = Release|x64
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Debug|x64.Build.0 = Release|x64
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Debug|x86.ActiveCfg = Debug|Win32
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Debug|x86.Build.0 = Debug|Win32
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Release|x64.ActiveCfg = Release|x64
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Release|x64.Build.0 = Release|x64
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Release|x86.ActiveCfg = Release|Win32
+		{66322F68-8D8D-476E-8428-1A1B2B15B5A1}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7CFC7C7E-7794-4670-B13A-764FFC5B2B00}
+	EndGlobalSection
+EndGlobal
