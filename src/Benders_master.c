@@ -1428,7 +1428,7 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
 	for (i=0; i<N-1; i++) {
 	    for (j=i+1; j<N; j++) {
 			if( (lb[index_e[i][j]] + EPSILON >= 1.0) && (lb[index_e[j][i]] + EPSILON >= 1.0)) {
-				printf("Lower Value of arc(%d,%d)=%.4lf\n", i, j, lb[index_e[i][j]]);
+				//printf("Lower Value of arc(%d,%d)=%.4lf\n", i, j, lb[index_e[i][j]]);
 				neighbors[i][degree[i]++] = j;
 				neighbors[j][degree[j]++] = i;
 				local_edges[i][j] = 1;
@@ -1436,7 +1436,7 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
             }
         } 
     }
-	printf("Number of edges %d\n", n_edges);
+	//printf("Number of edges %d\n", n_edges);
 
     // Find Connected Components:
     for (i=0; i<N; i++) { cc[i] = NONE; }
@@ -1459,8 +1459,8 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
 			n_cc++;
 		}
     }
-	printf("Number of connected components %d\n", n_cc);
-	for (i = 0; i < N; i++) { printf("node %d is in component %d\n", i, cc[i]); }
+	/*printf("Number of connected components %d\n", n_cc);
+	for (i = 0; i < N; i++) { printf("node %d is in component %d\n", i, cc[i]); }*/
 
 	//Trying to detect whether the components are all trees
 	for (i = 0; i < n_cc; i++) {
@@ -1480,7 +1480,7 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
 		}
 		// Mark as tree
 		if (count_edges == size - 1) { is_component_tree[i] = 1; }
-		else { is_component_tree[i] = 0; printf("component %d is not a tree\n"); }
+		else { is_component_tree[i] = 0; /*printf("component %d is not a tree\n");*/ }
 	}
 	
 
@@ -1519,7 +1519,7 @@ int add_local_cuts(GLOBAL_INFO global, CPXCENVptr env, void *cbdata, int wherefr
     cutval[0]   = 1.0;      // This is always the same    
     for (c=0; c<n_cc; c++) {
 		if (is_component_tree[c] == 1) {
-			printf("Writing cut for component %d\n", c);
+			//printf("Writing cut for component %d\n", c);
 			size = 0;
 			for (i = 0; i < N; i++) {
 				if (cc[i] == c) {
